@@ -1,11 +1,13 @@
-import os
 import time
-from dotenv import load_dotenv
 import pandas as pd
-from langchain_openai import OpenAIEmbeddings
-from pinecone import Pinecone, ServerlessSpec
 from tqdm.auto import tqdm
 import openai  # Needed for specific exception handling
+from common import (
+    load_api_keys,
+    initialize_pinecone,
+    initialize_embeddings,
+    initialize_vector_store
+)
 
 def chunk_text(text, chunk_size=400, overlap=50):
     words = text.split()
@@ -39,111 +41,115 @@ def retry_function(func, max_retries=3, delay=2, *args, **kwargs):
                 print(f"[DEBUG] All {max_retries} attempts failed.")
                 raise
 
-# Path to dataset
-file_path = "berlin_services/output.json"
+def main():
+    # 1) Load API keys
+    OPENAI_API_KEY, PINECONE_API_KEY = load_api_keys()
 
-# Load DataFrame
-data = pd.read_json(file_path)
-print("Number of pages:", len(data))
+    # 2) Initialize Pinecone client
+    index = initialize_pinecone(PINECONE_API_KEY)
 
-# Prepare OpenAI embeddings
-load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-print(f"[DEBUG] OPENAI_API_KEY: {OPENAI_API_KEY}")  # Verify the key is loaded
-model_name = 'text-embedding-ada-002'
-embed = OpenAIEmbeddings(model=model_name, api_key=OPENAI_API_KEY)
+    # 3) Initialize OpenAI embeddings
+    embedding_model = initialize_embeddings(OPENAI_API_KEY)
 
-# Pinecone setup
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY") 
-pc = Pinecone(api_key=PINECONE_API_KEY)
-spec = ServerlessSpec(cloud="aws", region="us-east-1")
+    # 4) Create Pinecone vector store
+    vector_store = initialize_vector_store(index, embedding_model)
 
-index_name = "berlin-services-retrieval-agent"
-existing_indexes = [info["name"] for info in pc.list_indexes()]
+    # 5) Path to dataset
+    file_path = "berlin_services/output.json"
 
-# Create index if needed
-if index_name not in existing_indexes:
-    print(f"[DEBUG] Creating Pinecone index '{index_name}'...")
-    pc.create_index(index_name, dimension=1536, metric='dotproduct', spec=spec)
-    # wait for index to be fully ready
-    while not pc.describe_index(index_name).status['ready']:
-        print("[DEBUG] Waiting for Pinecone index to be ready...")
-        time.sleep(1)
+    # 6) Load DataFrame
+    data = pd.read_json(file_path)
+    print("Number of pages:", len(data))
 
-index = pc.Index(index_name)
-time.sleep(1)
+    batch_size = 100
+    vector_buffer = []
 
-batch_size = 100
-vector_buffer = []
+    # Loop through all pages
+    for page_idx in tqdm(range(len(data)), desc="Processing pages"):
+        record = data.iloc[page_idx]
 
-# Loop through all pages
-for page_idx in tqdm(range(len(data)), desc="Processing pages"):
-    record = data.iloc[page_idx]
+        page_text = record["text"]
+        page_title = record["title"]
+        page_url = record["url"]
+        page_sub_links = record.get("sub_links", [])
 
-    page_text = record["text"]
-    page_title = record["title"]
-    page_url = record["url"]
-    page_sub_links = record.get("sub_links", [])
+        # DEBUG PRINT 1: Starting chunk
+        print(f"[DEBUG] Starting to chunk page {page_idx} with title '{page_title}'...")
 
-    # DEBUG PRINT 1: Starting chunk
-    print(f"[DEBUG] Starting to chunk page {page_idx} with title '{page_title}'...")
+        chunks = list(chunk_text(page_text, chunk_size=400, overlap=50))
+        # DEBUG PRINT 2: After chunk
+        print(f"[DEBUG] Finished chunking page {page_idx}. Number of chunks: {len(chunks)}")
 
-    chunks = list(chunk_text(page_text, chunk_size=400, overlap=50))
-    # DEBUG PRINT 2: After chunk
-    print(f"[DEBUG] Finished chunking page {page_idx}. Number of chunks: {len(chunks)}")
-
-    # 2) Embedding with retry
-    print(f"[DEBUG] Now embedding page {page_idx} with {len(chunks)} chunks...")
-    try:
-        # Corrected argument name from 'documents' to 'texts'
-        chunk_embeddings = retry_function(embed.embed_documents, max_retries=3, delay=2, texts=chunks)
-        print(f"[DEBUG] Successfully embedded page {page_idx}.")
-    except Exception as e:
-        print(f"[ERROR] Failed to embed page {page_idx} after retries. Skipping this page.")
-        continue  # Skip to the next page
-
-    # DEBUG PRINT 3: After embedding
-    print(f"[DEBUG] Finished embedding page {page_idx}. Sleeping 1s...")
-    time.sleep(5)  # Increased sleep time after embedding
-
-    # 3) Build vector data for each chunk
-    for chunk_i, (chunk_str, chunk_emb) in enumerate(zip(chunks, chunk_embeddings)):
-        vector_id = f"doc_{page_idx}_chunk_{chunk_i}"
-        meta = {
-            "title": page_title,
-            "url": page_url,
-            "sub_links": page_sub_links,
-            "chunk_i": chunk_i,
-            "text_excerpt": chunk_str[:200] 
-        }
-        vector_buffer.append((vector_id, chunk_emb, meta))
-
-    # DEBUG PRINT 4: buffer size
-    print(f"[DEBUG] vector_buffer size is {len(vector_buffer)} after page {page_idx}.")
-
-    # Upsert if buffer is large enough
-    if len(vector_buffer) >= batch_size:
-        print(f"[DEBUG] Upserting {len(vector_buffer)} vectors to Pinecone...")
+        # 2) Embedding with retry
+        print(f"[DEBUG] Now embedding page {page_idx} with {len(chunks)} chunks...")
         try:
-            retry_function(index.upsert, max_retries=3, delay=2, vectors=vector_buffer)
-            print(f"[DEBUG] Successfully upserted {len(vector_buffer)} vectors.")
+            # Corrected argument name from 'documents' to 'texts'
+            chunk_embeddings = retry_function(
+                embedding_model.embed_documents,
+                max_retries=3,
+                delay=2,
+                texts=chunks
+            )
+            print(f"[DEBUG] Successfully embedded page {page_idx}.")
         except Exception as e:
-            print(f"[ERROR] Failed to upsert vectors for page {page_idx} after retries.")
-        # after upsert
-        print(f"[DEBUG] Done upserting. Sleeping 1s...")
-        time.sleep(5)  # Increased sleep time after upserting
-        vector_buffer = []
+            print(f"[ERROR] Failed to embed page {page_idx} after retries. Skipping this page.")
+            continue  # Skip to the next page
 
-# Final leftover upsert
-if vector_buffer:
-    print(f"[DEBUG] Final upsert of leftover {len(vector_buffer)} vectors...")
-    try:
-        retry_function(index.upsert, max_retries=3, delay=2, vectors=vector_buffer)
-        print(f"[DEBUG] Successfully upserted final {len(vector_buffer)} vectors.")
-    except Exception as e:
-        print(f"[ERROR] Failed to upsert final vectors after retries.")
-    print(f"[DEBUG] Done final upsert. Sleeping 1s...")
-    time.sleep(5)  # Increased sleep time after final upsert
+        # DEBUG PRINT 3: After embedding
+        print(f"[DEBUG] Finished embedding page {page_idx}. Sleeping 5s...")
+        time.sleep(5)  # Increased sleep time after embedding
 
-stats = index.describe_index_stats()
-print("Index stats:", stats)
+        # 3) Build vector data for each chunk
+        for chunk_i, (chunk_str, chunk_emb) in enumerate(zip(chunks, chunk_embeddings)):
+            vector_id = f"doc_{page_idx}_chunk_{chunk_i}"
+            meta = {
+                "title": page_title,
+                "url": page_url,
+                "sub_links": page_sub_links,
+                "chunk_i": chunk_i,
+                "text_excerpt": chunk_str[:200] 
+            }
+            vector_buffer.append((vector_id, chunk_emb, meta))
+
+        # DEBUG PRINT 4: buffer size
+        print(f"[DEBUG] vector_buffer size is {len(vector_buffer)} after page {page_idx}.")
+
+        # Upsert if buffer is large enough
+        if len(vector_buffer) >= batch_size:
+            print(f"[DEBUG] Upserting {len(vector_buffer)} vectors to Pinecone...")
+            try:
+                retry_function(
+                    index.upsert,
+                    max_retries=3,
+                    delay=2,
+                    vectors=vector_buffer
+                )
+                print(f"[DEBUG] Successfully upserted {len(vector_buffer)} vectors.")
+            except Exception as e:
+                print(f"[ERROR] Failed to upsert vectors for page {page_idx} after retries.")
+            # after upsert
+            print(f"[DEBUG] Done upserting. Sleeping 5s...")
+            time.sleep(5)  # Increased sleep time after upserting
+            vector_buffer = []
+
+    # Final leftover upsert
+    if vector_buffer:
+        print(f"[DEBUG] Final upsert of leftover {len(vector_buffer)} vectors...")
+        try:
+            retry_function(
+                index.upsert,
+                max_retries=3,
+                delay=2,
+                vectors=vector_buffer
+            )
+            print(f"[DEBUG] Successfully upserted final {len(vector_buffer)} vectors.")
+        except Exception as e:
+            print(f"[ERROR] Failed to upsert final vectors after retries.")
+        print(f"[DEBUG] Done final upsert. Sleeping 5s...")
+        time.sleep(5)  # Increased sleep time after final upsert
+
+    stats = index.describe_index_stats()
+    print("Index stats:", stats)
+
+if __name__ == "__main__":
+    main()
