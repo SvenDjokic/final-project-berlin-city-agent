@@ -1,7 +1,7 @@
 import time
 import pandas as pd
 from tqdm.auto import tqdm
-import openai  # Needed for specific exception handling
+# import openai  # Needed for specific exception handling
 from common import (
     load_api_keys,
     initialize_pinecone,

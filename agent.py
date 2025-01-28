@@ -9,7 +9,6 @@ from common import (
     initialize_prompt,
     initialize_llm
 )
-from langchain.chains import RetrievalQA
 
 def initialize_agent_system():
     # 1) Load API keys
