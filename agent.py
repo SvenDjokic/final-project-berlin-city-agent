@@ -1,5 +1,6 @@
 from langchain.agents import Tool, initialize_agent
 from langchain.chains.conversation.memory import ConversationBufferWindowMemory
+from langchain.chains import RetrievalQAWithSourcesChain
 from common import (
     load_api_keys,
     initialize_pinecone,
@@ -27,16 +28,14 @@ def initialize_agent_system():
     custom_prompt = initialize_prompt()
 
     # 6) Configure the ChatOpenAI model
-    # Specify a different model if desired, e.g., "gpt-4"
-    llm_model = "gpt-4"  # Choose based on your subscription and needs
+    # Specify llm model
+    llm_model = "gpt-4o-mini"  
     llm = initialize_llm(OPENAI_API_KEY, model=llm_model)
 
-    # 7) Configure Retrieval QA chain with the custom prompt
-    qa_chain = RetrievalQA.from_chain_type(
+    # 7) Configure RetrievalQAWithSourcesChain with the custom prompt
+    qa_chain = RetrievalQAWithSourcesChain.from_llm(
         llm=llm,
-        chain_type="stuff",
         retriever=vector_store.as_retriever(),
-        chain_type_kwargs={"prompt": custom_prompt}
     )
 
     # 8) Initialize conversational memory
@@ -51,7 +50,8 @@ def initialize_agent_system():
         name='Knowledge Base',
         func=qa_chain.run,
         description=(
-            'Use this tool to answer questions about Berlin services by retrieving relevant information from the knowledge base.'
+            'Use this tool to answer questions about Berlin services by retrieving relevant information from the knowledge base. '
+            'Each answer will include the source URLs where the information was retrieved from.'
         )
     )
 

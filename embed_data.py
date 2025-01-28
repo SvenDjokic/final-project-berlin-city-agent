@@ -17,7 +17,7 @@ def chunk_text(text, chunk_size=400, overlap=50):
         yield " ".join(chunk_words)
         i += chunk_size - overlap
 
-def retry_function(func, max_retries=3, delay=2, *args, **kwargs):
+def retry_function(func, max_retries=3, delay=5, *args, **kwargs):
     """
     Attempts to execute a function with retries.
 
@@ -83,7 +83,6 @@ def main():
         # 2) Embedding with retry
         print(f"[DEBUG] Now embedding page {page_idx} with {len(chunks)} chunks...")
         try:
-            # Corrected argument name from 'documents' to 'texts'
             chunk_embeddings = retry_function(
                 embedding_model.embed_documents,
                 max_retries=3,
@@ -96,8 +95,8 @@ def main():
             continue  # Skip to the next page
 
         # DEBUG PRINT 3: After embedding
-        print(f"[DEBUG] Finished embedding page {page_idx}. Sleeping 5s...")
-        time.sleep(5)  # Increased sleep time after embedding
+        print(f"[DEBUG] Finished embedding page {page_idx}. Sleeping 10s...")
+        time.sleep(10)  # Increased sleep time after embedding
 
         # 3) Build vector data for each chunk
         for chunk_i, (chunk_str, chunk_emb) in enumerate(zip(chunks, chunk_embeddings)):
@@ -105,6 +104,7 @@ def main():
             meta = {
                 "title": page_title,
                 "url": page_url,
+                "source": page_url,
                 "sub_links": page_sub_links,
                 "chunk_i": chunk_i,
                 "text_excerpt": chunk_str[:200] 
@@ -128,8 +128,8 @@ def main():
             except Exception as e:
                 print(f"[ERROR] Failed to upsert vectors for page {page_idx} after retries.")
             # after upsert
-            print(f"[DEBUG] Done upserting. Sleeping 5s...")
-            time.sleep(5)  # Increased sleep time after upserting
+            print(f"[DEBUG] Done upserting. Sleeping 10s...")
+            time.sleep(10)  # Increased sleep time after upserting
             vector_buffer = []
 
     # Final leftover upsert
@@ -145,8 +145,8 @@ def main():
             print(f"[DEBUG] Successfully upserted final {len(vector_buffer)} vectors.")
         except Exception as e:
             print(f"[ERROR] Failed to upsert final vectors after retries.")
-        print(f"[DEBUG] Done final upsert. Sleeping 5s...")
-        time.sleep(5)  # Increased sleep time after final upsert
+        print(f"[DEBUG] Done final upsert. Sleeping 10s...")
+        time.sleep(10)  # Increased sleep time after final upsert
 
     stats = index.describe_index_stats()
     print("Index stats:", stats)
