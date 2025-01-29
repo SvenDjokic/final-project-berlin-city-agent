@@ -15,7 +15,6 @@ def main():
     
     # 1) Load API keys
     OPENAI_API_KEY, PINECONE_API_KEY, LANGSMITH_API_KEY = load_api_keys()
-    print(LANGSMITH_API_KEY)
 
     # 2) Initialize Pinecone client
     index = initialize_pinecone(PINECONE_API_KEY)

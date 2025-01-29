@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain.prompts import PromptTemplate
 
 def load_api_keys():
     load_dotenv()
@@ -67,37 +66,6 @@ def initialize_vector_store(index, embedding_model, text_key="text_excerpt"):
         # include_metadata=True 
     )
     return vector_store
-
-def create_custom_prompt():
-    custom_prompt = PromptTemplate(
-        template="""
-        You are an expert assistant specializing in providing detailed and comprehensive information about Berlin services.
-
-        Use the following pieces of context to answer the question at the end thoroughly. Ensure that your response includes step-by-step instructions, all relevant details, and any necessary explanations. Present the information in a clear, organized format, such as a numbered list or bullet points. **At the end of your answer, include the source URLs where the information was retrieved from.**
-
-        Example:
-        Context:
-        In Berlin, die Anmeldung erfolgt beim örtlichen Bürgeramt. Sie müssen einen gültigen Personalausweis, ein aktuelles biometrisches Passfoto und einen Nachweis über Ihre Wohnadresse vorlegen. Die Bearbeitungszeit beträgt in der Regel eine Woche, und die Gebühren variieren je nach Stadtteil.
-
-        Question: "Wie melde ich mich in Berlin an?"
-        Answer:
-        1. **Terminvereinbarung:** Vereinbaren Sie einen Termin beim örtlichen Bürgeramt in Berlin. Dies kann oft online oder telefonisch erfolgen.
-        2. **Erforderliche Dokumente:** Bringen Sie folgende Unterlagen mit:
-        - Einen gültigen Personalausweis
-        - Ein aktuelles biometrisches Passfoto
-        - Ihren Mietvertrag oder Nachweis der Wohnadresse
-        3. **Gebühren:** Zahlen Sie die Anmeldegebühren, die je nach Stadtteil variieren können.
-        4. **Bearbeitungszeit:** Die Bearbeitung dauert in der Regel etwa eine Woche.
-        5. **Abschluss:** Nach der Bearbeitung erhalten Sie eine Meldebescheinigung.
-
-        Context:
-        {context}
-
-        Question: {question}
-        Answer:""",
-        input_variables=["context", "question"]
-    )
-    return custom_prompt
 
 def initialize_llm(OPENAI_API_KEY, model, temperature=0.0):
     llm = ChatOpenAI(
