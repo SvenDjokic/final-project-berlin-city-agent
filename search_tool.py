@@ -1,6 +1,7 @@
 import sys
 import os
 from langchain.chains import RetrievalQAWithSourcesChain
+# from langchain_openai import ChatOpenAI
 from common import (
     load_api_keys,
     initialize_pinecone,
@@ -13,7 +14,8 @@ from common import (
 def main():
     
     # 1) Load API keys
-    OPENAI_API_KEY, PINECONE_API_KEY = load_api_keys()
+    OPENAI_API_KEY, PINECONE_API_KEY, LANGSMITH_API_KEY = load_api_keys()
+    print(LANGSMITH_API_KEY)
 
     # 2) Initialize Pinecone client
     index = initialize_pinecone(PINECONE_API_KEY)
@@ -23,6 +25,11 @@ def main():
     
     # 4) Create Pinecone vector store
     vector_store = initialize_vector_store(index, embedding_model)
+
+    # Connect to Langsmith
+    os.environ['LANGSMITH_TRACING'] ='true'
+    os.environ['LANGSMITH_ENDPOINT']="https://api.smith.langchain.com"
+    os.environ['LANGSMITH_PROJECT']="berlin-city-agent"
 
     # 5) Configure the ChatOpenAI model
     # Specify the model you want to use for RetrievalQA

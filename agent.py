@@ -47,7 +47,7 @@ def initialize_agent_system():
     # 9) Convert RetrievalQA chain into a Tool
     knowledge_tool = Tool(
         name='Knowledge Base',
-        func=qa_chain.run,
+        func=qa_chain.invoke,
         description=(
             'Use this tool to answer questions about Berlin services by retrieving relevant information from the knowledge base. '
             'Each answer will include the source URLs where the information was retrieved from.'
@@ -62,7 +62,8 @@ def initialize_agent_system():
         verbose=True,
         max_iterations=3,  # Maximum number of iterations the agent can perform to answer a query
         early_stopping_method='generate',  # Method to stop the agent early if needed
-        memory=conversational_memory
+        memory=conversational_memory,
+        custom_prompt=custom_prompt
     )
 
     return agent
@@ -75,7 +76,7 @@ def chat_with_agent(agent):
             print("Beenden der Konversation. Auf Wiedersehen!")
             break
         try:
-            response = agent.run(user_input)
+            response = agent.invoke(user_input)
             print(f"Assistent: {response}\n")
         except Exception as e:
             print(f"Ein Fehler ist aufgetreten: {e}\n")
