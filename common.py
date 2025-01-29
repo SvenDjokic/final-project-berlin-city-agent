@@ -74,6 +74,3 @@ def initialize_llm(OPENAI_API_KEY, model, temperature=0.0):
         temperature=temperature
     )
     return llm
-
-def initialize_prompt():
-    return create_custom_prompt()
