@@ -15,7 +15,10 @@ from common import (
 
 CUSTOM_PROMPT = """
 You are an expert assistant specializing in providing detailed and comprehensive information about Berlin services.
-Answer queries step by step, ensuring clarity and accuracy. Always include sources at the end if relevant.
+Answer queries step by step, ensuring clarity and accuracy. 
+
+Respond to the user's question but do NOT generate references or links yourself.
+We (the system) will append any relevant source links automatically after your summary.
 
 Example:
 User: "Wie melde ich mich in Berlin an?"
@@ -86,28 +89,45 @@ def initialize_agent_system():
     # 6) Define Tools
     def search_berlin_services_tool(user_input: str) -> str:
         """
-        This tool retrieves the answer + source docs from the chain,
-        then formats them into a single response string that includes the source URLs.
+        Summarize the answer from the retrieved chunks,
+        then append the real metadata 'url' and 'title'
+        from those chunks.
         """
+        # 1) Get the retrieval result (with sources)
         result = qa_chain_with_sources({"question": user_input})
-        answer = result["answer"]
-        source_docs = result["source_documents"]
+        summary = result["answer"]  # Summarized text from the LLM
+        source_docs = result["source_documents"]  # The chunks used
 
-        # Collect unique source URLs from metadata
-        urls = []
+        # Debug print
+        print(f"[DEBUG] Retrieved {len(source_docs)} docs.")
+        for i, doc in enumerate(source_docs):
+            print(f"[DEBUG] Doc {i} metadata: {doc.metadata}")
+
+        # 2) Build a list of unique sources
+        used_sources = []
         for doc in source_docs:
             meta = doc.metadata
-            url = meta.get("url") or meta.get("source") or "N/A"
-            if url not in urls:
-                urls.append(url)
+            # Pull the real URL from metadata
+            url = meta.get("url", "N/A")
+            title = meta.get("title", "N/A")
+        
+            # Ensure no duplicates
+            if (url, title) not in used_sources:
+                used_sources.append((url, title))
 
-        # Format the sources to be appended at the end
-        if urls:
-            sources_str = "\n\n**Quellen/URLs**:\n" + "\n".join(f"- {u}" for u in urls)
+        # 3) Convert the sources to a neat string
+        if used_sources:
+            sources_str = "\n\n**Weiterführende Links**:\n"
+            for url, title in used_sources:
+                # Format as a Markdown link or "Title (URL)"
+                sources_str += f"- [{title}]({url})\n"
         else:
             sources_str = "\n\n(Keine spezifischen Quellen gefunden.)"
-
-        return answer + sources_str
+        
+        # 4) Combine the answer text with the correct source links
+        final_answer = summary + sources_str
+        
+        return final_answer
 
     def summarize_berlin_info_tool(user_input: str) -> str:
         """
