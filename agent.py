@@ -201,7 +201,7 @@ def initialize_agent_system():
     agent = initialize_agent(
         tools=tools,  
         llm=llm,  
-        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
+        agent=AgentType.OPENAI_FUNCTIONS, 
         verbose=True,
         max_iterations=3,
         early_stopping_method='generate',

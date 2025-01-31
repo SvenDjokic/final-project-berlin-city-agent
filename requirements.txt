@@ -1,0 +1,24 @@
+```txt
+# Core Scrapy usage
+scrapy>=2.6.2
+
+# For progress bars in embed_data.py
+tqdm>=4.64.0
+
+# For reading environment variables
+python-dotenv>=0.21.0
+
+# Pinecone Python client
+pinecone-client>=2.2.1
+
+# LangChain library (includes many submodules)
+langchain>=0.0.0
+
+# For OpenAI embeddings & ChatOpenAI
+openai>=0.27.0
+
+# Gradio web interface
+gradio>=3.0.0
+
+# If needed (depending on local usage):
+# pip install langchain_openai langchain_pinecone if they are separate packages

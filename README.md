@@ -1,80 +1,128 @@
-![logo_ironhack_blue 7](https://user-images.githubusercontent.com/23629340/40541063-a07a0a8a-601a-11e8-91b5-2f13e4e6b441.png)
+# Berlin City Services Agent
 
-# Project III | Business Case: Building a Multimodal AI ChatBot for YouTube Video QA
+**Description**  
+This repository contains a project that provides an AI assistant for Berlin city services. Users can ask questions about how to obtain documents, register addresses, or other official procedures in Berlin. The assistant retrieves data from the [service.berlin.de](https://service.berlin.de) website and provides step-by-step instructions, along with relevant links.
 
-Building a chatbot that can translate YouTube videos into text and allow for natural language querying offers several compelling business cases.
+---
 
-- Firstly, it improves accessibility for users with hearing impairments or those who prefer reading over watching videos, thereby broadening the audience reach and enhancing brand reputation.
-- Secondly, it enables efficient indexing and searching of video content, allowing users to quickly find specific information within videos, which is particularly useful for educational content and tutorials.
-- Thirdly, it improves customer support by leveraging existing video content to provide instant, accurate responses to customer queries, thus reducing support costs and improving response times.
-- Additionally, it serves educational and training purposes by enhancing the learning experience, enabling easy querying and access to specific segments of instructional videos. From an SEO and content marketing perspective, video transcripts can significantly boost website traffic and video discoverability by improving search engine indexing. Lastly, supporting multiple languages allows the chatbot to cater to a global audience, expanding market reach and enhancing user engagement.
+## Table of Contents
 
-### Project Overview
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Installation and Setup](#installation-and-setup)
+- [Usage](#usage)
+- [Gradio Web App](#gradio-web-app)
+- [Debugging and Searching](#debugging-and-searching)
+- [Scrapy Spiders and Data Embedding](#scrapy-spiders-and-data-embedding)
+- [Environment Variables](#environment-variables)
+- [Notes on Agent Tools](#notes-on-agent-tools)
+- [License](#license)
 
-The goal of this final project is to develop a RAG system or AI bot that combines the power of text and audio processing to answer questions about YouTube videos. The bot will utilize natural language processing (NLP) techniques and speech recognition to analyze both textual and audio input, extract relevant information from YouTube videos, and provide accurate answers to user queries.
+---
 
-### Key Objectives
+## Overview
 
-1. Develop a text-based question answering (QA) model using pre-trained language models. You may find it useful to fine-tune your model.
-2. Integrate speech recognition capabilities to convert audio/video input (user questions) into text transcripts.
-3. Build a conversational interface for users to interact with the bot via text or voice input. The latter is not a must.
-4. Retrieve, analyze, and store into a vector database (pinecone, chromabd...) YouTube video content to generate answers to user questions.
-5. Test and evaluate the bot's performance in accurately answering questions about YouTube videos.
-6. Your AI must use agents with several tools and memory.
+This project uses:
+- **Scrapy** to crawl and scrape the Berlin service pages.
+- **OpenAI embeddings** to vectorize the scraped text.
+- **Pinecone** as a vector store backend.
+- **LangChain** for building an LLM-based agent with multiple tools (retrieval, summarization, etc.).
+- **Gradio** to provide a web-based chat interface.
 
-### Incorporating LangChain & LangSmith
+---
 
-To enhance the project with LangChain, you can utilize LangChain agents and functions for various tasks:
+## Features
 
-1. **Text Preprocessing:**
-   - Use LangChain functions for tokenization, lemmatization, and other text preprocessing tasks as you see fit.
+1. **Scrapy Spider** (`berlin_services_spider.py`):
+   - Scrapes Berlin services pages and extracts text/content.
 
-2. **QA Model Development:**
-   - Utilize LangChain agents for fine-tuning pre-trained language models from HuggingFace or OpenAI for question answering tasks. If you use OpenAI api key provide by Ironhack, be mindful of the limited credits available for the entire class.
+2. **Data Embedding** (`embed_data.py`):
+   - Splits scraped text into chunks, encodes them with OpenAI embeddings, and stores them in Pinecone.
 
-3. **Speech Recognition Integration:**
-   - Incorporate LangChain agents for integrating speech recognition capabilities into the bot, allowing it to process audio and/or text inputs.
+3. **Common Utilities** (`common.py`):
+   - Contains all initialization code for Pinecone, OpenAI embeddings, vector store, and LLM.
 
-4. **Conversational Interface:**
-   - Design conversational flows using LangChain agents to handle user interactions and route queries to the appropriate processing modules.
+4. **Agent** (`agent.py`):
+   - Defines a LangChain-based agent with various tools for retrieval and summarization.
 
-5. **YouTube Video Retrieval:**
-   - Develop LangChain agents for accessing YouTube video content and extracting relevant metadata for analysis.
+5. **Gradio App** (`app.py`):
+   - Runs a local web server where users can chat with the Berlin City Agent.
 
-6. **Make use of a vector database of your choice**
+6. **Search Tool** (`search_tool.py`):
+   - For debugging or direct testing of the retrieval chain.
 
-7. **Make use of LangSmith platform for testing, evaluation, and deployment of your AI**
+---
 
-### Deliverables
+## Architecture
 
-1. Source code for the multimodal bot implementation, including LangChain integration.
-2. Documentation detailing the project architecture, methodology, and LangChain usage.
-3. Presentation slides summarizing the project objectives, process, and results.
-4. This must be deployed as a web/mobile app.
+├── agent.py                # Defines the AI agent with Tools
+├── app.py                  # Gradio web interface
+├── berlin_services_spider.py  # Scrapy spider for crawling
+├── common.py               # Shared initialization functions (Pinecone, LLM, etc.)
+├── embed_data.py           # Splits data chunks, embeds, upserts to Pinecone
+├── requirements.txt        # Python dependencies
+├── search_tool.py          # Standalone retrieval QA debug tool
+├── README.md               # This file
+└── …
 
-### Project Timeline
+---
 
-- Day 1-2: Project kickoff, data collection, and text preprocessing using LangChain functions.
-- Day 3-4: QA model development with LangChain agents and speech recognition integration.
-- Day 5-6: Conversational interface development with LangChain agents and YouTube video retrieval.
-- Day 7: Testing, evaluation, documentation, and presentation preparation.
+## Installation
 
-## Resources
+1. **Clone this repository**  
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/berlin-city-services-agent.git
+   cd berlin-city-services-agent
 
-Below are some useful resources, but you don't have to use them.
+2.	**Create and activate a virtual environment**
 
-- [YouTube](https://pypi.org/project/youtube-transcript-api/) Python [module](https://pypi.org/project/yt-dlp/2021.3.7/).
-- [Whisper LLM](https://huggingface.co/openai/whisper-large-v3)
-- Pre-trained language models available in libraries like [HuggingFace](https://huggingface.co/) Transformers.
-- [LangChain](https://python.langchain.com/v0.1/docs/get_started/quickstart/) for text preprocessing, model development, and conversational interface design.
-- [LangSmith](https://www.langchain.com/langsmith) for testing, performance checks, and [deploying](https://langchain-ai.github.io/langgraph/cloud/quick_start/#test-the-graph-build-locally) your model and app.
+   python -m venv venv
+   source venv/bin/activate  # (Linux/Mac)
+   # or .\venv\Scripts\activate on Windows
 
-## Evaluation Criteria
+3.	**Install dependencies**
 
-- Accuracy of the bot in answering user questions about YouTube videos.
-- Usability and responsiveness of the conversational interface (latency).
-- Documentation quality and clarity of presentation slides.
+   pip install --upgrade pip
+   pip install -r requirements.txt
 
-## Conclusion
+4.	Set up environment variables
 
-This final project offers an exciting opportunity to explore the intersection of NLP, speech recognition, and multimedia analysis in building a multimodal bot for YouTube video QA. By leveraging state-of-the-art techniques and technologies, including LangChain, you will gain valuable hands-on experience in developing innovative AI applications with real-world impact. You may find it to focus on my topic like health, nutrition, astrophysics...but this is an open ended project in some ways. So, feel free to build something you will be proud of. If you have other source of data other than YouTube you are free to use it.
+Create a .env file with your API keys
+
+## Usage
+
+1.	**Scrape the Data**
+
+   scrapy crawl berlin_services -o berlin_services/output.json
+
+This writes scraped data to output.json.
+
+2.	**Embed the Data**
+
+   python embed_data.py
+
+Splits the scraped text, encodes it with OpenAI embeddings, and stores vectors in Pinecone.
+
+3.	**Run the Gradio App**
+
+   python app.py
+
+Opens a local Gradio interface (http://127.0.0.1:7860 by default). You can interact with the chatbot that answers questions about Berlin services.
+
+4.	**(Optional) Run the Search Tool**
+
+   python search_tool.py
+
+Debug or explore direct retrieval QA with sources.
+
+## Notes
+
+•	LangChain powers the AI agent.
+•	Pinecone is used as a vector store for efficient semantic search.
+•	OpenAI embeddings (Ada) are used to encode text chunks from berlin_services_spider.py.
+•	Gradio creates a shareable web UI.
+
+## Contact
+
+For questions or issues, please open an issue on this repo or contact the author.
