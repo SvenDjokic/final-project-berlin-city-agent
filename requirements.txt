@@ -1,4 +1,3 @@
-```txt
 # Core Scrapy usage
 scrapy>=2.6.2
 

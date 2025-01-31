@@ -54,39 +54,26 @@ This project uses:
 
 ---
 
-## Architecture
-
-├── agent.py                # Defines the AI agent with Tools
-├── app.py                  # Gradio web interface
-├── berlin_services_spider.py  # Scrapy spider for crawling
-├── common.py               # Shared initialization functions (Pinecone, LLM, etc.)
-├── embed_data.py           # Splits data chunks, embeds, upserts to Pinecone
-├── requirements.txt        # Python dependencies
-├── search_tool.py          # Standalone retrieval QA debug tool
-├── README.md               # This file
-└── …
-
----
-
 ## Installation
 
 1. **Clone this repository**  
-   ```bash
+
    git clone https://github.com/YOUR_USERNAME/berlin-city-services-agent.git
    cd berlin-city-services-agent
 
 2.	**Create and activate a virtual environment**
 
    python -m venv venv
-   source venv/bin/activate  # (Linux/Mac)
-   # or .\venv\Scripts\activate on Windows
+
+   source venv/bin/activate  # Linux/Mac
+   .\venv\Scripts\activate # Windows
 
 3.	**Install dependencies**
 
    pip install --upgrade pip
    pip install -r requirements.txt
 
-4.	Set up environment variables
+4.	**Set up environment variables**
 
 Create a .env file with your API keys
 
@@ -116,12 +103,6 @@ Opens a local Gradio interface (http://127.0.0.1:7860 by default). You can inter
 
 Debug or explore direct retrieval QA with sources.
 
-## Notes
-
-•	LangChain powers the AI agent.
-•	Pinecone is used as a vector store for efficient semantic search.
-•	OpenAI embeddings (Ada) are used to encode text chunks from berlin_services_spider.py.
-•	Gradio creates a shareable web UI.
 
 ## Contact
 
