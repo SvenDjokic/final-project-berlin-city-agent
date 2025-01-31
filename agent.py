@@ -17,6 +17,8 @@ CUSTOM_PROMPT = """
 You are an expert assistant specializing in providing detailed and comprehensive information about Berlin services.
 Answer queries step by step, ensuring clarity and accuracy. 
 
+Important: The final answer must only include the links that are strictly relevant to the user's query. Omit any link that is NOT relevant to the user's question. Include links that ARE relevant.
+
 Respond to the user's question but do NOT generate references or links yourself.
 We (the system) will append any relevant source links automatically after your summary.
 
@@ -199,7 +201,7 @@ def initialize_agent_system():
     agent = initialize_agent(
         tools=tools,  
         llm=llm,  
-        agent=AgentType.OPENAI_FUNCTIONS, 
+        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
         verbose=True,
         max_iterations=3,
         early_stopping_method='generate',

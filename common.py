@@ -13,7 +13,7 @@ def load_api_keys():
         raise ValueError("Missing OPENAI_API_KEY or PINECONE_API_KEY in environment variables.")
     return OPENAI_API_KEY, PINECONE_API_KEY, LANGSMITH_API_KEY
 
-def initialize_pinecone(PINECONE_API_KEY, index_name="berlin-services-retrieval-agent"):
+def initialize_pinecone(PINECONE_API_KEY, index_name="berlin-services-retrieval"):
     pc = Pinecone(api_key=PINECONE_API_KEY)
     existing_indexes = [info["name"] for info in pc.list_indexes()]
     

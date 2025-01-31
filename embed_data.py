@@ -75,18 +75,21 @@ def main():
         # DEBUG PRINT 1: Starting chunk
         print(f"[DEBUG] Starting to chunk page {page_idx} with title '{page_title}'...")
 
-        chunks = list(chunk_text(page_text, chunk_size=1000, overlap=50))
+        chunks = list(chunk_text(page_text, chunk_size=400, overlap=50))
         # DEBUG PRINT 2: After chunk
         print(f"[DEBUG] Finished chunking page {page_idx}. Number of chunks: {len(chunks)}")
 
+        #  This ensures the embedding sees the title as context
+        titled_chunks = [f"{page_title}\n\n{chunk_str}" for chunk_str in chunks]
+
         # 2) Embedding with retry
-        print(f"[DEBUG] Now embedding page {page_idx} with {len(chunks)} chunks...")
+        print(f"[DEBUG] Now embedding page {page_idx} with {len(titled_chunks)} chunks...")
         try:
             chunk_embeddings = retry_function(
                 embedding_model.embed_documents,
                 max_retries=3,
                 delay=2,
-                texts=chunks
+                texts=titled_chunks
             )
             print(f"[DEBUG] Successfully embedded page {page_idx}.")
         except Exception as e:
@@ -98,14 +101,14 @@ def main():
         time.sleep(12)  # Increased sleep time after embedding
 
         # 3) Build vector data for each chunk
-        for chunk_i, (chunk_str, chunk_emb) in enumerate(zip(chunks, chunk_embeddings)):
+        for chunk_i, (chunk_str, chunk_emb) in enumerate(zip(titled_chunks, chunk_embeddings)):
             vector_id = f"doc_{page_idx}_chunk_{chunk_i}"
             meta = {
-                "title": page_title,
+                "title": page_title, # main page title
                 "url": page_url,
                 "source": page_url,
                 "chunk_i": chunk_i,
-                "text_excerpt": chunk_str
+                "text_excerpt": chunk_str # includes the appended title
             }
             vector_buffer.append((vector_id, chunk_emb, meta))
 
